@@ -17,38 +17,56 @@ namespace Azurenet.Controllers
 
         //Entity framework
         [HttpGet("get-products")]
-        public async Task<IActionResult> GetEFCore()
+        public async Task<IActionResult> GetProducts()
         {
             List<Product> products = await _context.Products.ToListAsync();
             return Ok(products);
         }
 
-        [HttpGet("get-all-products")]
-        public async Task<IActionResult> GetAllProductsDapper()
+        //Entity framework
+        [HttpGet("get-product/{id}")]
+        public async Task<IActionResult> GetProduct(int id)
         {
-            //
-            const string sql = "SELECT * FROM Products WHERE ProductId = 3321";
-
-            using (var connection = new MySqlConnection(_connectionString))
+            if (id <= 0)
             {
-                await connection.OpenAsync();
-
-                var products = await connection.QueryAsync<Product>(sql);
-                return Ok(products);
+                return BadRequest(new { Message = "Invalid product ID." });
             }
+
+            Product? product = await _context.Products.FirstOrDefaultAsync(p => p.ProductId == id);
+
+            if (product == null)
+            {
+                return NotFound(new { Message = $"Product with ID {id} not found." });
+            }
+            return Ok(product.ProductCategory.GetTypeCode());
         }
 
 
-
         [HttpPost("add-product")]
-        public async Task<IActionResult> AddProduct(Product product)
+        public async Task<IActionResult> AddProduct([FromBody] Product product)
         {
-            for(int i = 1000; i < 5000; i++)
+            
+            if (string.IsNullOrWhiteSpace(product.ProductName))
             {
-                product.ProductId = i;
-                _context.Products.Add(product);
-                await _context.SaveChangesAsync();
+                return BadRequest(new { Message = "Product name cannot be empty." });
             }
+            //Trim any leading spaces
+            product.ProductName = product.ProductName.Trim();
+
+            //var existingProduct = await (from products in _context.Products
+            //                       where products.ProductId == product.ProductId
+            //                       select products).FirstOrDefaultAsync();
+            var existingProduct = await _context.Products
+                                    .FirstOrDefaultAsync(p => p.ProductId == product.ProductId);
+
+
+
+            if (existingProduct != null)
+            {
+                return BadRequest(new {Message = "Product already exists."});
+            }
+            _context.Products.Add(product);
+            _context.SaveChanges();
 
             return Ok(product);
         }

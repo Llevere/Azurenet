@@ -1,7 +1,9 @@
+using Azurenet.Identity;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-
+using Microsoft.IdentityModel.Tokens;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -22,6 +24,36 @@ builder.Services.AddDbContext<AppDbContext>(options =>
         ServerVersion.AutoDetect(connectionString)
 ));
 
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+
+    
+})
+.AddJwtBearer(options =>
+{
+    options.RequireHttpsMetadata = false;
+    options.SaveToken = true;
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = builder.Configuration["JwtSettings:Issuer"],
+        ValidAudience = builder.Configuration["JwtSettings:Audience"],
+        IssuerSigningKey = new SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(builder.Configuration["JwtSettings:Key"]!))
+    };
+});
+
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy(IdentityData.RoleUserPolicyName, p => p.RequireClaim(IdentityData.RoleUserClaimName, "admin"));
+});
+
+
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
     options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
@@ -37,16 +69,15 @@ builder.WebHost.ConfigureKestrel(options =>
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();  // Enable Swagger to generate the Swagger JSON
-    app.UseSwaggerUI(c =>
-    {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "My API V1");
-        c.RoutePrefix = "swagger";  // Makes Swagger UI accessible at /swagger
-    });
 
-}
+app.UseSwagger();  // Enable Swagger to generate the Swagger JSON
+app.UseSwaggerUI(c =>
+{
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "My API V1");
+    c.RoutePrefix = "swagger";  // Makes Swagger UI accessible at /swagger
+});
+
+
 
 app.UseStaticFiles();
 app.UseHttpsRedirection();  // Enforce HTTPS redirection
