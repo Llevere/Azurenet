@@ -26,6 +26,7 @@ namespace Azurenet.Controllers
         [HttpGet("get-all-products")]
         public async Task<IActionResult> GetAllProductsDapper()
         {
+            //
             const string sql = "SELECT * FROM Products WHERE ProductId = 3321";
 
             using (var connection = new MySqlConnection(_connectionString))
