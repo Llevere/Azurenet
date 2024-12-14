@@ -2,11 +2,12 @@
 
 namespace Azurenet.Controllers
 {
-    public class JWT : Controller
+    [Route("/api/[controller]")]
+    [ApiController]
+    public class JWTController(AppDbContext context) : ControllerBase
     {
-        public IActionResult Index()
-        {
-            return View();
-        }
+        private readonly AppDbContext _context = context;
+
+
     }
 }

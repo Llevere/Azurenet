@@ -1,11 +1,13 @@
 using Azurenet.Models;
 using Dapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MySqlConnector;
 using System.Diagnostics;
+using System.Security.Claims;
 
-namespace Azurenet.Controllers
+namespace Azurenet.Products
 {
     [Route("/api/[controller]")]
     [ApiController]
@@ -15,15 +17,18 @@ namespace Azurenet.Controllers
         private readonly string _connectionString = configuration.GetConnectionString("DefaultConnection")!;
 
 
-        //Entity framework
+        [Authorize(Roles ="Admin,Owner,Employee")]
         [HttpGet("get-products")]
         public async Task<IActionResult> GetProducts()
         {
+            var role = User.FindFirst(ClaimTypes.Role)?.Value;
             List<Product> products = await _context.Products.ToListAsync();
-            return Ok(products);
+            return Ok(new { role });
         }
 
+
         //Entity framework
+        [Authorize]
         [HttpGet("get-product/{id}")]
         public async Task<IActionResult> GetProduct(int id)
         {
@@ -38,14 +43,14 @@ namespace Azurenet.Controllers
             {
                 return NotFound(new { Message = $"Product with ID {id} not found." });
             }
-            return Ok(product.ProductCategory.GetTypeCode());
+            return Ok(product);
         }
 
 
         [HttpPost("add-product")]
         public async Task<IActionResult> AddProduct([FromBody] Product product)
         {
-            
+
             if (string.IsNullOrWhiteSpace(product.ProductName))
             {
                 return BadRequest(new { Message = "Product name cannot be empty." });
@@ -63,7 +68,7 @@ namespace Azurenet.Controllers
 
             if (existingProduct != null)
             {
-                return BadRequest(new {Message = "Product already exists."});
+                return BadRequest(new { Message = "Product already exists." });
             }
             _context.Products.Add(product);
             _context.SaveChanges();

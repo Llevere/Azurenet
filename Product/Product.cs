@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using Azurenet.Models;
 
-namespace Azurenet.Models
+namespace Azurenet.Products
 {
     public class Product
     {

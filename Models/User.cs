@@ -18,7 +18,6 @@ namespace Azurenet.Models
             [Required]
             public DateTime CreatedAt { get; set; }
 
-            public string? JWT { get; set; } = string.Empty; 
 
             public string? ResetToken { get; set; } = string.Empty;
 
